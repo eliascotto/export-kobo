@@ -1,32 +1,3 @@
-#!/usr/bin/env python
-# coding=utf-8
-
-# The MIT License (MIT)
-#
-# Copyright (c) 2013-2017 Alberto Pettarin (alberto@albertopettarin.it)
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-"""
-Export annotations and highlights from a Kobo SQLite file.
-"""
-
 import argparse
 import datetime
 import csv
@@ -35,39 +6,30 @@ import os
 import sqlite3
 import sys
 
-__author__ = "Alberto Pettarin"
-__email__ = "alberto@albertopettarin.it"
-__copyright__ = "Copyright 2013-2017, Alberto Pettarin (www.albertopettarin.it)"
-__license__ = "MIT"
-__status__ = "Production"
-__version__ = "2.1.1"
-
-
-PY2 = (sys.version_info[0] == 2)
 
 DAYS = [
-    u"Monday",
-    u"Tuesday",
-    u"Wednesday",
-    u"Thursday",
-    u"Friday",
-    u"Saturday",
-    u"Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
 ]
 
 MONTHS = [
-    u"January",
-    u"February",
-    u"March",
-    u"April",
-    u"May",
-    u"June",
-    u"July",
-    u"August",
-    u"September",
-    u"October",
-    u"November",
-    u"December",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
 ]
 
 
@@ -82,7 +44,7 @@ class CommandLineTool(object):
     # overload in the actual subclass
     #
     AP_PROGRAM = sys.argv[0]
-    AP_DESCRIPTION = u"Generic Command Line Tool"
+    AP_DESCRIPTION = "Generic Command Line Tool"
     AP_ARGUMENTS = [
         # required args
         # {"name": "foo", "nargs": 1, "type": str, "default": "baz", "help": "Foo help"},
@@ -128,13 +90,13 @@ class CommandLineTool(object):
 
         This function is meant to be overridden in an actual subclass.
         """
-        self.print_stdout(u"This script does nothing. Invoke another .py")
+        self.print_stdout("This script does nothing. Invoke another .py")
 
     def error(self, message):
         """
         Print an error and exit with exit code 1.
         """
-        self.print_stderr(u"ERROR: {}".format(message))
+        self.print_stderr("ERROR: {}".format(message))
         sys.exit(1)
 
     def print_stdout(self, *args, **kwargs):
@@ -167,8 +129,8 @@ class Item(object):
         self.text = values[1]
         self.annotation = values[2]
         self.extraannotationdata = values[3]
-        self.datecreated = values[4] if values[4] is not None else u"1970-01-01T00:00:00.000"
-        self.datemodified = values[5] if values[5] is not None else u"1970-01-01T00:00:00.000"
+        self.datecreated = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
+        self.datemodified = values[5] if values[5] is not None else "1970-01-01T00:00:00.000"
         self.booktitle = values[6]
         self.chapter = values[7]
         self.author = values[8]
@@ -185,15 +147,15 @@ class Item(object):
         return (self.kind, self.booktitle, self.author, self.chapter, self.datecreated, self.datemodified, self.annotation, self.text)
 
     def format_date(self):
-        d = u"Thursday, 1 January 1970 00:00:00"
+        d = "Thursday, 1 January 1970 00:00:00"
         try:
             p1, p2 = self.datecreated.split("T")
             year, month, day = [int(x) for x in p1.split("-")]
             hour, minute, second = [int(float(x)) for x in p2.split(":")]
             sday = DAYS[datetime.datetime(year=year, month=month, day=day).weekday()]
             smonth = MONTHS[month - 1]
-            # e.g. u"Friday, 19 December 2014 19:54:11"
-            d = u"{}, {} {} {} {:02d}:{:02d}:{:02d}".format(sday, day, smonth, year, hour, minute, second)
+            # e.g. "Friday, 19 December 2014 19:54:11"
+            d = "{}, {} {} {} {:02d}:{:02d}:{:02d}".format(sday, day, smonth, year, hour, minute, second)
         except:
             pass
         return d
@@ -204,45 +166,45 @@ class Item(object):
         """
         date = self.format_date()
         acc = []
-        acc.append(u"%s (%s)" % (self.title, self.author))
+        acc.append("{} ({})".format(self.title, self.author))
         if self.kind == self.ANNOTATION:
-            acc.append(u"- Your Note on page %d | location %d | Added on %s" % (1, 1, date))
-            acc.append(u"")
+            acc.append("- Your Note on page {} | location {} | Added on {}".format(1, 1, date))
+            acc.append("")
             acc.append(self.annotation)
         elif self.kind == self.HIGHLIGHT:
-            acc.append(u"- Your Highlight on page %d | location %d | Added on %s" % (1, 1, date))
-            acc.append(u"")
+            acc.append("- Your Highlight on page {} | location {} | Added on {}".format(1, 1, date))
+            acc.append("")
             acc.append(self.text)
         else:
-            acc.append(u"- Your Bookmark on page %d | location %d | Added on %s" % (1, 1, date))
-            acc.append(u"")
-        acc.append(u"==========")
-        return u"\n".join(acc)
+            acc.append("- Your Bookmark on page {} | location {} | Added on {}".format(1, 1, date))
+            acc.append("")
+        acc.append("==========")
+        return "\n".join(acc)
 
     def __repr__(self):
-        return u"({}, {}, {}, {}, {}, {}, {}, {})".format(self.csv_tuple())
+        return "({}, {}, {}, {}, {}, {}, {}, {})".format(self.csv_tuple())
 
     def __str__(self):
         acc = []
-        hsep = u"\n=== === ===\n"
-        asep = u"\n### ### ###\n"
+        hsep = "\n=== === ===\n"
+        asep = "\n### ### ###\n"
         date = self.format_date()
         if self.kind == self.ANNOTATION:
-            acc.append(u"Type:           {}".format(self.kind))
-            acc.append(u"Title:          {}".format(self.booktitle))
-            acc.append(u"Author:         {}".format(self.author))
-            acc.append(u"Chapter:        {}".format(self.chapter))
-            acc.append(u"Date created:   {}".format(date))
-            acc.append(u"Annotation:     {}{}{}".format(asep, self.annotation, asep))
-            acc.append(u"Reference text: {}{}{}".format(hsep, self.text, hsep))
+            acc.append("Type:           {}".format(self.kind))
+            acc.append("Title:          {}".format(self.booktitle))
+            acc.append("Author:         {}".format(self.author))
+            acc.append("Chapter:        {}".format(self.chapter))
+            acc.append("Date created:   {}".format(date))
+            acc.append("Annotation:     {}{}{}".format(asep, self.annotation, asep))
+            acc.append("Reference text: {}{}{}".format(hsep, self.text, hsep))
         if self.kind == self.HIGHLIGHT:
-            acc.append(u"Type:           {}".format(self.kind))
-            acc.append(u"Title:          {}".format(self.booktitle))
-            acc.append(u"Author:         {}".format(self.author))
-            acc.append(u"Chapter:        {}".format(self.chapter))
-            acc.append(u"Date created:   {}".format(date))
-            acc.append(u"Reference text: {}{}{}".format(hsep, self.text, hsep))
-        return u"\n".join(acc)
+            acc.append("Type:           {}".format(self.kind))
+            acc.append("Title:          {}".format(self.booktitle))
+            acc.append("Author:         {}".format(self.author))
+            acc.append("Chapter:        {}".format(self.chapter))
+            acc.append("Date created:   {}".format(date))
+            acc.append("Reference text: {}{}{}".format(hsep, self.text, hsep))
+        return "\n".join(acc)
 
 
 class Book(object):
@@ -260,7 +222,7 @@ class Book(object):
         self.author = values[3]
 
     def __repr__(self):
-        return u"({}, {}, {}, {})".format(self.volumeid, self.booktitle, self.title, self.author)
+        return "({}, {}, {}, {})".format(self.volumeid, self.booktitle, self.title, self.author)
 
     def __str__(self):
         return self.__repr__()
@@ -273,8 +235,8 @@ class ExportKobo(CommandLineTool):
     from a Kobo SQLite file.
     """
 
-    AP_PROGRAM = u"export-kobo"
-    AP_DESCRIPTION = u"Export annotations and highlights from a Kobo SQLite file."
+    AP_PROGRAM = "export-kobo"
+    AP_DESCRIPTION = "Export annotations and highlights from a Kobo SQLite file."
     AP_ARGUMENTS = [
         {
             "name": "db",
@@ -403,33 +365,33 @@ class ExportKobo(CommandLineTool):
         read the given SQLite file, and format/output data as requested.
         """
         if self.vargs["db"] is None:
-            self.error(u"You must specify the path to your KoboReader.sqlite file.")
+            self.error("You must specify the path to your KoboReader.sqlite file.")
 
         books = self.enumerate_books()
         if self.vargs["list"]:
             # export list of books
             acc = []
-            acc.append((u"ID", u"AUTHOR", u"TITLE"))
+            acc.append(("ID", "AUTHOR", "TITLE"))
             for (i, b) in books:
                 acc.append((i, b.author, b.title))
             if self.vargs["csv"]:
                 acc = self.list_to_csv(acc)
             else:
-                acc = u"\n".join([(u"{}\t{:30}\t{}".format(i, t, a)) for (i, t, a) in acc])
+                acc = "\n".join([("{}\t{:30}\t{}".format(i, t, a)) for (i, t, a) in acc])
         else:
             # export annotations and/or highlights
             items = self.read_items()
             if self.vargs["kindle"]:
                 # kindle format
-                acc = u"\n".join([i.kindle_my_clippings() for i in items])
+                acc = "\n".join([i.kindle_my_clippings() for i in items])
             elif self.vargs["csv"]:
                 # CSV format
                 acc = self.list_to_csv([i.csv_tuple() for i in items])
             elif self.vargs["raw"]:
-                acc = u"\n".join([(u"{}\n".format(i.text)) for i in items])
+                acc = "\n".join([("{}\n".format(i.text)) for i in items])
             else:
                 # human-readable format
-                acc = u"\n".join([(u"{}\n".format(i)) for i in items])
+                acc = "\n".join([("{}\n".format(i)) for i in items])
 
         if self.vargs["output"] is not None:
             # write to file
@@ -437,7 +399,7 @@ class ExportKobo(CommandLineTool):
                 with io.open(self.vargs["output"], "w", encoding="utf-8") as f:
                     f.write(acc)
             except IOError:
-                self.error(u"Unable to write output file. Please check that the path is correct and that you have write permission on it.")
+                self.error("Unable to write output file. Please check that the path is correct and that you have write permission on it.")
         else:
             # write to stdout
             try:
@@ -447,33 +409,23 @@ class ExportKobo(CommandLineTool):
 
         if self.vargs["info"]:
             # print some info about the extraction
-            self.print_stdout(u"")
-            self.print_stdout(u"Books with annotations or highlights: {}".format(len(books)))
+            self.print_stdout("")
+            self.print_stdout("Books with annotations or highlights: {}".format(len(books)))
             if not self.vargs["list"]:
-                self.print_stdout(u"Annotations and/or highlights:        {}".format(len(items)))
+                self.print_stdout("Total annotations and/or highlights:  {}".format(len(items)))
 
     def list_to_csv(self, data):
         """
         Convert the given Item data into a well-formed CSV string.
         """
-        if PY2:
-            # PY2
-            output = io.BytesIO()
-        else:
-            # PY3
-            output = io.StringIO()
+        output = io.StringIO()
         writer = csv.writer(output)
         for d in data:
             try:
                 writer.writerow(d)
             except UnicodeEncodeError:
                 writer.writerow(tuple([(v.encode("ascii", errors="replace") if v is not None else "") for v in d]))
-        if PY2:
-            # PY2
-            return output.getvalue().decode("utf-8")
-        else:
-            # PY3
-            return output.getvalue()
+        return output.getvalue()
 
     def enumerate_books(self):
         """
@@ -494,7 +446,7 @@ class ExportKobo(CommandLineTool):
         try:
             return enum[int(bookid) - 1][1].volumeid
         except:
-            self.error(u"The bookid value must be an integer between 1 and {}".format(len(enum)))
+            self.error("The bookid value must be an integer between 1 and {}".format(len(enum)))
 
     def read_items(self):
         """
@@ -505,7 +457,7 @@ class ExportKobo(CommandLineTool):
         if len(items) == 0:
             return items
         if (self.vargs["bookid"] is not None) and (self.vargs["book"] is not None):
-            self.error(u"You cannot specify both --book and --bookid.")
+            self.error("You cannot specify both --book and --bookid.")
         if self.vargs["bookid"] is not None:
             items = [i for i in items if i.volumeid == self.volumeid_from_bookid()]
         if self.vargs["book"] is not None:
@@ -522,7 +474,7 @@ class ExportKobo(CommandLineTool):
         """
         db_path = self.vargs["db"]
         if not os.path.exists(db_path):
-            self.error(u"Unable to read the KoboReader.sqlite file. Please check that the path is correct and that you have read permission on it.")
+            self.error("Unable to read the KoboReader.sqlite file. Please check that the path is correct and that you have permission to read it.")
         try:
             sql_connection = sqlite3.connect(db_path)
             sql_cursor = sql_connection.cursor()
@@ -531,9 +483,8 @@ class ExportKobo(CommandLineTool):
             sql_cursor.close()
             sql_connection.close()
         except Exception as exc:
-            self.error(u"Unexpected error reading your KoboReader.sqlite file: {}".format(exc))
-        # NOTE the values are Unicode strings (unicode on PY2, str on PY3)
-        #      hence data is a list of tuples of Unicode strings
+            self.error("Unexpected error reading your KoboReader.sqlite file: {}".format(exc))
+        # NOTE the values are Unicode strings (str on python3) hence data is a list of tuples of Unicode strings
         return data
 
 
