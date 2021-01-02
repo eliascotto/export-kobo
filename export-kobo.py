@@ -126,7 +126,7 @@ class Item(object):
 
     def __init__(self, values):
         self.volumeid = values[0]
-        self.text = values[1]
+        self.text = values[1].strip().rstrip()
         self.annotation = values[2]
         self.extraannotationdata = values[3]
         self.datecreated = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
@@ -142,9 +142,21 @@ class Item(object):
 
     def csv_tuple(self):
         """
-        Return a tuple representing this Item, for CSV-output purposes.
+        Return a tuple representing this Item, for CSV output purposes.
         """
         return (self.kind, self.booktitle, self.author, self.chapter, self.datecreated, self.datemodified, self.annotation, self.text)
+
+    def markdown(self):
+        """
+        Output markdown item contains only highlights and notes.
+        """
+        if self.kind == self.ANNOTATION:
+            output = "- {}\n\n  *{}*\n\n".format(self.text, self.annotation)
+        elif self.kind == self.HIGHLIGHT:
+            output = "- {}\n\n".format(self.text)
+        else:
+            output = ""
+        return output
 
     def format_date(self):
         d = "Thursday, 1 January 1970 00:00:00"
@@ -165,46 +177,46 @@ class Item(object):
         Return a string representing this Item, in the Kindle "My Clippings" format.
         """
         date = self.format_date()
-        acc = []
-        acc.append("{} ({})".format(self.title, self.author))
+        output = []
+        output.append("{} ({})".format(self.title, self.author))
         if self.kind == self.ANNOTATION:
-            acc.append("- Your Note on page {} | location {} | Added on {}".format(1, 1, date))
-            acc.append("")
-            acc.append(self.annotation)
+            output.append("- Your Note on page {} | location {} | Added on {}".format(1, 1, date))
+            output.append("")
+            output.append(self.annotation)
         elif self.kind == self.HIGHLIGHT:
-            acc.append("- Your Highlight on page {} | location {} | Added on {}".format(1, 1, date))
-            acc.append("")
-            acc.append(self.text)
+            output.append("- Your Highlight on page {} | location {} | Added on {}".format(1, 1, date))
+            output.append("")
+            output.append(self.text)
         else:
-            acc.append("- Your Bookmark on page {} | location {} | Added on {}".format(1, 1, date))
-            acc.append("")
-        acc.append("==========")
-        return "\n".join(acc)
+            output.append("- Your Bookmark on page {} | location {} | Added on {}".format(1, 1, date))
+            output.append("")
+        output.append("==========")
+        return "\n".join(output)
 
     def __repr__(self):
-        return "({}, {}, {}, {}, {}, {}, {}, {})".format(self.csv_tuple())
+        return "({})".format(self.csv_tuple())
 
     def __str__(self):
-        acc = []
+        output = []
         hsep = "\n=== === ===\n"
         asep = "\n### ### ###\n"
         date = self.format_date()
         if self.kind == self.ANNOTATION:
-            acc.append("Type:           {}".format(self.kind))
-            acc.append("Title:          {}".format(self.booktitle))
-            acc.append("Author:         {}".format(self.author))
-            acc.append("Chapter:        {}".format(self.chapter))
-            acc.append("Date created:   {}".format(date))
-            acc.append("Annotation:     {}{}{}".format(asep, self.annotation, asep))
-            acc.append("Reference text: {}{}{}".format(hsep, self.text, hsep))
+            output.append("Type:           {}".format(self.kind))
+            output.append("Title:          {}".format(self.booktitle))
+            output.append("Author:         {}".format(self.author))
+            output.append("Chapter:        {}".format(self.chapter))
+            output.append("Date created:   {}".format(date))
+            output.append("Annotation:     {}{}{}".format(asep, self.annotation, asep))
+            output.append("Reference text: {}{}{}".format(hsep, self.text, hsep))
         if self.kind == self.HIGHLIGHT:
-            acc.append("Type:           {}".format(self.kind))
-            acc.append("Title:          {}".format(self.booktitle))
-            acc.append("Author:         {}".format(self.author))
-            acc.append("Chapter:        {}".format(self.chapter))
-            acc.append("Date created:   {}".format(date))
-            acc.append("Reference text: {}{}{}".format(hsep, self.text, hsep))
-        return "\n".join(acc)
+            output.append("Type:           {}".format(self.kind))
+            output.append("Title:          {}".format(self.booktitle))
+            output.append("Author:         {}".format(self.author))
+            output.append("Chapter:        {}".format(self.chapter))
+            output.append("Date created:   {}".format(date))
+            output.append("Reference text: {}{}{}".format(hsep, self.text, hsep))
+        return "\n".join(output)
 
 
 class Book(object):
@@ -226,6 +238,9 @@ class Book(object):
 
     def __str__(self):
         return self.__repr__()
+
+    def to_markdown(self):
+        return "# {}\n## by {}\n---\n\n".format(self.title, self.author)
 
 
 class ExportKobo(CommandLineTool):
@@ -256,6 +271,11 @@ class ExportKobo(CommandLineTool):
             "name": "--csv",
             "action": "store_true",
             "help": "Output in CSV format instead of human-readable format"
+        },
+        {
+            "name": "--mark",
+            "action": "store_true",
+            "help": "Output in Markdown list format"
         },
         {
             "name": "--kindle",
@@ -370,49 +390,66 @@ class ExportKobo(CommandLineTool):
         books = self.enumerate_books()
         if self.vargs["list"]:
             # export list of books
-            acc = []
-            acc.append(("ID", "AUTHOR", "TITLE"))
+            output = []
+            output.append(("ID", "AUTHOR", "TITLE"))
             for (i, b) in books:
-                acc.append((i, b.author, b.title))
+                output.append((i, b.author, b.title))
             if self.vargs["csv"]:
-                acc = self.list_to_csv(acc)
+                output = self.list_to_csv(output)
             else:
-                acc = "\n".join([("{}\t{:30}\t{}".format(i, t, a)) for (i, t, a) in acc])
+                output = "\n".join([("{}\t{:30}\t{}".format(i, t, a)) for (i, t, a) in output])
         else:
             # export annotations and/or highlights
-            items = self.read_items()
+            items = self.read_items(books)
             if self.vargs["kindle"]:
                 # kindle format
-                acc = "\n".join([i.kindle_my_clippings() for i in items])
+                output = "\n".join([i.kindle_my_clippings() for i in items])
             elif self.vargs["csv"]:
                 # CSV format
-                acc = self.list_to_csv([i.csv_tuple() for i in items])
+                output = self.list_to_csv([i.csv_tuple() for i in items])
+            elif self.vargs["mark"]:
+                output = self.list_to_markdown(items, books)
             elif self.vargs["raw"]:
-                acc = "\n".join([("{}\n".format(i.text)) for i in items])
+                output = "\n".join([("{}\n".format(i.text)) for i in items])
             else:
                 # human-readable format
-                acc = "\n".join([("{}\n".format(i)) for i in items])
+                output = "\n".join([("{}\n".format(i)) for i in items])
 
         if self.vargs["output"] is not None:
             # write to file
             try:
                 with io.open(self.vargs["output"], "w", encoding="utf-8") as f:
-                    f.write(acc)
+                    f.write(output)
             except IOError:
                 self.error("Unable to write output file. Please check that the path is correct and that you have write permission on it.")
-        else:
-            # write to stdout
-            try:
-                self.print_stdout(acc)
-            except UnicodeEncodeError:
-                self.print_stdout(acc.encode("ascii", errors="replace"))
-
-        if self.vargs["info"]:
+        elif self.vargs["info"]:
             # print some info about the extraction
-            self.print_stdout("")
             self.print_stdout("Books with annotations or highlights: {}".format(len(books)))
             if not self.vargs["list"]:
                 self.print_stdout("Total annotations and/or highlights:  {}".format(len(items)))
+        else:
+            # write to stdout
+            try:
+                self.print_stdout(output)
+            except UnicodeEncodeError:
+                self.print_stdout(output.encode("ascii", errors="replace"))
+
+    def list_to_markdown(self, items, books):
+        output = ""
+        book = self.current_book(books)
+
+        if book == None:
+            # no books specified
+            for (i, b) in books:
+                output += b.to_markdown()
+                # filter items of the current book
+                filtered_items = [i for i in items if i.volumeid == b.volumeid]
+                output += "".join([i.markdown() for i in filtered_items])
+        else:
+            print(len(items))
+            output += book.to_markdown()
+            output += "".join([i.markdown() for i in items])
+        return output
 
     def list_to_csv(self, data):
         """
@@ -435,20 +472,28 @@ class ExportKobo(CommandLineTool):
         books = [Book(d) for d in self.query(self.QUERY_BOOKS)]
         return list(enumerate(books, start=1))
 
-    def volumeid_from_bookid(self):
+    def volumeid_from_bookid(self, books):
         """
         Get the correct ``volumeid`` from the ``bookid``,
         that is, the index of the book
         as produced by the ``enumerate_books()``.
         """
-        enum = self.enumerate_books()
         bookid = self.vargs["bookid"]
         try:
-            return enum[int(bookid) - 1][1].volumeid
+            return books[int(bookid) - 1][1].volumeid
         except:
-            self.error("The bookid value must be an integer between 1 and {}".format(len(enum)))
+            self.error("The bookid value must be an integer between 1 and {}".format(len(books)))
 
-    def read_items(self):
+    def current_book(self, books):
+        bookid, booktitle = self.vargs["bookid"], self.vargs["book"]
+        if (bookid is not None) and (booktitle is not None):
+            return None
+        if bookid is not None:
+            return books[int(bookid) - 1][1]
+        if booktitle is not None:
+            return filter(lambda i, b: b.title == booktitle, books)[0]
+
+    def read_items(self, books):
         """
         Query the SQLite file, filtering Item objects as specified
         by the user.
@@ -459,7 +504,7 @@ class ExportKobo(CommandLineTool):
         if (self.vargs["bookid"] is not None) and (self.vargs["book"] is not None):
             self.error("You cannot specify both --book and --bookid.")
         if self.vargs["bookid"] is not None:
-            items = [i for i in items if i.volumeid == self.volumeid_from_bookid()]
+            items = [i for i in items if i.volumeid == self.volumeid_from_bookid(books)]
         if self.vargs["book"] is not None:
             items = [i for i in items if i.title == self.vargs["book"]]
         if self.vargs["highlights_only"]:
