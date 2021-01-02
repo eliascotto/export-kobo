@@ -18,14 +18,11 @@ $ python export-kobo.py KoboReader.sqlite --output /path/to/out.txt
 $ # export in CSV format
 $ python export-kobo.py KoboReader.sqlite --csv
 
-$ # export in CSV format to file
-$ python export-kobo.py KoboReader.sqlite --csv --output /path/to/out.csv
-
 $ # export in Kindle My Clippings format
 $ python export-kobo.py KoboReader.sqlite --kindle
 
-$ # export in Kindle My Clippings to file
-$ python export-kobo.py KoboReader.sqlite --kindle --output /path/to/out.csv
+$ # export in Markdown list format
+$ python export-kobo.py KoboReader.sqlite --mark
 
 $ # export annotations only
 $ python export-kobo.py KoboReader.sqlite --annotations-only
@@ -38,12 +35,6 @@ $ python export-kobo.py KoboReader.sqlite --csv  --annotations-only --output /pa
 
 $ # print the list of books with annotations or highlights to stdout
 $ python export-kobo.py KoboReader.sqlite --list
-
-$ # as above, but export to file
-$ python export-kobo.py KoboReader.sqlite --list --output /path/to/out.txt
-
-$ # as above, but export in CSV format
-$ python export-kobo.py KoboReader.sqlite --list --csv --output /path/to/out.txt
 
 $ # export annotations and highlights for the book "Alice in Wonderland"
 $ python export-kobo.py KoboReader.sqlite --book "Alice in Wonderland"

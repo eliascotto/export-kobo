@@ -446,7 +446,6 @@ class ExportKobo(CommandLineTool):
                 filtered_items = [i for i in items if i.volumeid == b.volumeid]
                 output += "".join([i.markdown() for i in filtered_items])
         else:
-            print(len(items))
             output += book.to_markdown()
             output += "".join([i.markdown() for i in items])
         return output
