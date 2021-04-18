@@ -273,7 +273,7 @@ class ExportKobo(CommandLineTool):
             "help": "Output in CSV format instead of human-readable format"
         },
         {
-            "name": "--mark",
+            "name": "--markdown",
             "action": "store_true",
             "help": "Output in Markdown list format"
         },
@@ -408,7 +408,7 @@ class ExportKobo(CommandLineTool):
             elif self.vargs["csv"]:
                 # CSV format
                 output = self.list_to_csv([i.csv_tuple() for i in items])
-            elif self.vargs["mark"]:
+            elif self.vargs["markdown"]:
                 output = self.list_to_markdown(items, books)
             elif self.vargs["raw"]:
                 output = "\n".join([("{}\n".format(i.text)) for i in items])

@@ -22,7 +22,7 @@ $ # export in Kindle My Clippings format
 $ python export-kobo.py KoboReader.sqlite --kindle
 
 $ # export in Markdown list format
-$ python export-kobo.py KoboReader.sqlite --mark
+$ python export-kobo.py KoboReader.sqlite --markdown
 
 $ # export annotations only
 $ python export-kobo.py KoboReader.sqlite --annotations-only
@@ -180,6 +180,7 @@ The original version of this script is from [Alberto Pettarin](https://github.co
 * Added Chapter information to the output
 * Restyled output of list and annotations
 * Sort highlight/annotations by `datecreated`
+* Export in Markdown format
 
 ## Acknowledgments
 
