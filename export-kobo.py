@@ -397,7 +397,8 @@ class ExportKobo(CommandLineTool):
             if self.vargs["csv"]:
                 output = self.list_to_csv(output)
             else:
-                output = "\n".join([("{}\t{:30}\t{}".format(i, t, a)) for (i, t, a) in output])
+                frmt = lambda v: "{}\t{:30}\t{}".format(v[0], v[1] or "None", v[2] or "None")
+                output = "\n".join([frmt(v) for v in output])
         else:
             # export annotations and/or highlights
             items = self.read_items(books)
