@@ -126,10 +126,7 @@ class Item(object):
 
     def __init__(self, values):
         self.volumeid = values[0]
-        if values[1] is not None:
-            self.text = values[1].strip().rstrip()
-        else:
-            self.text = None
+        self.text = values[1].strip().rstrip() if values[1] is not None else None
         self.annotation = values[2]
         self.extraannotationdata = values[3]
         self.datecreated = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
