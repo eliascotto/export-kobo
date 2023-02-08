@@ -124,16 +124,16 @@ class Item(object):
     BOOKMARK = "bookmark"
     HIGHLIGHT = "highlight"
 
-    def __init__(self, values):
+    def __init__(self, values, book):
         self.volumeid = values[0]
         self.text = values[1].strip().rstrip() if values[1] else None
         self.annotation = values[2]
         self.extraannotationdata = values[3]
         self.datecreated = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
         self.datemodified = values[5] if values[5] is not None else "1970-01-01T00:00:00.000"
-        self.booktitle = values[6]
+        self.booktitle = book.title
         self.chapter = values[7]
-        self.author = values[8]
+        self.author = book.author
         self.kind = self.BOOKMARK
         if (self.text is not None) and (self.text != "") and (self.annotation is not None) and (self.annotation != ""):
             self.kind = self.ANNOTATION
@@ -385,21 +385,19 @@ class ExportKobo(CommandLineTool):
         if self.vargs["db"] is None:
             self.error("You must specify the path to your KoboReader.sqlite file.")
 
-        books = self.enumerate_books()
-        if self.vargs["list"]:
-            # export list of books
+        dict_books, enum_books = self.extract_books()
+        if self.vargs["list"]: # export list of books
             output = []
             output.append(("ID", "AUTHOR", "TITLE"))
-            for (i, b) in books:
+            for (i, b) in enum_books:
                 output.append((i, b.author, b.title))
             if self.vargs["csv"]:
                 output = self.list_to_csv(output)
             else:
                 frmt = lambda v: "{}\t{:30}\t{}".format(v[0], v[1] or "None", v[2] or "None")
                 output = "\n".join([frmt(v) for v in output])
-        else:
-            # export annotations and/or highlights
-            items = self.read_items(books)
+        else: # export annotations and/or highlights
+            items = self.read_items(dict_books, enum_books)
             if self.vargs["kindle"]:
                 # kindle format
                 output = "\n".join([i.kindle_my_clippings() for i in items])
@@ -407,7 +405,7 @@ class ExportKobo(CommandLineTool):
                 # CSV format
                 output = self.list_to_csv([i.csv_tuple() for i in items])
             elif self.vargs["markdown"]:
-                output = self.list_to_markdown(items, books)
+                output = self.list_to_markdown(items, enum_books)
             elif self.vargs["raw"]:
                 output = "\n".join([("{}\n".format(i.text)) for i in items])
             else:
@@ -423,7 +421,7 @@ class ExportKobo(CommandLineTool):
                 self.error("Unable to write output file. Please check that the path is correct and that you have write permission on it.")
         elif self.vargs["info"]:
             # print some info about the extraction
-            self.print_stdout("Books with annotations or highlights: {}".format(len(books)))
+            self.print_stdout("Books with annotations or highlights: {}".format(len(enum_books)))
             if not self.vargs["list"]:
                 self.print_stdout("Total annotations and/or highlights:  {}".format(len(items)))
         else:
@@ -463,12 +461,19 @@ class ExportKobo(CommandLineTool):
         return output.getvalue()
 
     def enumerate_books(self):
-        """
-        Return a list of pairs ``(int, Book)``,
-        with the index starting at one.
-        """
+        
         books = [Book(d) for d in self.query(self.QUERY_BOOKS)]
         return list(enumerate(books, start=1))
+
+    def extract_books(self):
+        """
+        Return the list of books into two formats:
+        a dict with ``{volumeId: Book}``,
+        a list of pairs ``(int, Book)`` with the index starting at one.
+        """
+        books = [(d[0], Book(d)) for d in self.query(self.QUERY_BOOKS)]
+        ids, books = zip(*books)
+        return dict(zip(ids, books)), list(enumerate(books, start=1))
 
     def volumeid_from_bookid(self, books):
         """
@@ -491,18 +496,19 @@ class ExportKobo(CommandLineTool):
         if booktitle is not None:
             return filter(lambda i, b: b.title == booktitle, books)[0]
 
-    def read_items(self, books):
+    def read_items(self, dict_books, enum_books):
         """
         Query the SQLite file, filtering Item objects as specified
         by the user.
         """
-        items = [Item(d) for d in self.query(self.QUERY_ITEMS)]
+        # Creating a new Item with the relative Book for extract title+author coming from the other table
+        items = [Item(d, dict_books.get(d[0])) for d in self.query(self.QUERY_ITEMS)]
         if len(items) == 0:
             return items
         if (self.vargs["bookid"] is not None) and (self.vargs["book"] is not None):
             self.error("You cannot specify both --book and --bookid.")
         if self.vargs["bookid"] is not None:
-            items = [i for i in items if i.volumeid == self.volumeid_from_bookid(books)]
+            items = [i for i in items if i.volumeid == self.volumeid_from_bookid(enum_books)]
         if self.vargs["book"] is not None:
             items = [i for i in items if i.title == self.vargs["book"]]
         if self.vargs["highlights_only"]:
