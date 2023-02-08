@@ -1,46 +1,48 @@
 # export-kobo
 A Python tool to export annotations and highlights from a Kobo SQLite file. This is a maintained version of [export-kobo](https://github.com/pettarin/export-kobo) by Alberto Pettarin.
 
+Works with Python 3 only.
+
 **Tested with latest Kobo Clara**
 
 ## Usage
 
 ```bash
 $ # print all annotations and highlights to stdout
-$ python export-kobo.py KoboReader.sqlite
+$ python3 export-kobo.py KoboReader.sqlite
 
 $ # print the help
-$ python export-kobo.py --help
+$ python3 export-kobo.py --help
 
 $ # export to file instead of stdout
-$ python export-kobo.py KoboReader.sqlite --output /path/to/out.txt
+$ python3 export-kobo.py KoboReader.sqlite --output /path/to/out.txt
 
 $ # export in CSV format
-$ python export-kobo.py KoboReader.sqlite --csv
+$ python3 export-kobo.py KoboReader.sqlite --csv
 
 $ # export in Kindle My Clippings format
-$ python export-kobo.py KoboReader.sqlite --kindle
+$ python3 export-kobo.py KoboReader.sqlite --kindle
 
 $ # export in Markdown list format
-$ python export-kobo.py KoboReader.sqlite --markdown
+$ python3 export-kobo.py KoboReader.sqlite --markdown
 
 $ # export annotations only
-$ python export-kobo.py KoboReader.sqlite --annotations-only
+$ python3 export-kobo.py KoboReader.sqlite --annotations-only
 
 $ # export highlights only
-$ python export-kobo.py KoboReader.sqlite --highlights-only
+$ python3 export-kobo.py KoboReader.sqlite --highlights-only
 
 $ # export as CSV to file annotations only
-$ python export-kobo.py KoboReader.sqlite --csv  --annotations-only --output /path/to/out.txt
+$ python3 export-kobo.py KoboReader.sqlite --csv  --annotations-only --output /path/to/out.txt
 
 $ # print the list of books with annotations or highlights to stdout
-$ python export-kobo.py KoboReader.sqlite --list
+$ python3 export-kobo.py KoboReader.sqlite --list
 
 $ # export annotations and highlights for the book "Alice in Wonderland"
-$ python export-kobo.py KoboReader.sqlite --book "Alice in Wonderland"
+$ python3 export-kobo.py KoboReader.sqlite --book "Alice in Wonderland"
 
 $ # as above, assuming "Alice in Wonderland" has ID "12" in the list printed by --list
-$ python export-kobo.py KoboReader.sqlite --bookid 12
+$ python3 export-kobo.py KoboReader.sqlite --bookid 12
 ```
 
 Example output
@@ -89,7 +91,7 @@ Reference text:
 
 5. Now you can run the script as explained above, for example:
     ```bash
-    $ python export-kobo.py KoboReader.sqlite
+    $ python3 export-kobo.py KoboReader.sqlite
     ```
 
 NOTE (2018-02-28): Frederic Da Vitoria confirms that the export script
@@ -108,22 +110,22 @@ you can use the ``--list`` option to list all books with annotations or highligh
 and then use ``--book`` or ``--bookid`` to export only those you are interested in:
 
 ``` bash
-$ python export-kobo.py KoboReader.sqlite --list
+$ python3 export-kobo.py KoboReader.sqlite --list
 ID  Title
 1   Alice in Wonderland
 2   Moby Dick
 3   Sonnets
 ...
 
-$ python export-kobo.py KoboReader.sqlite --book "Alice in Wonderland"
+$ python3 export-kobo.py KoboReader.sqlite --book "Alice in Wonderland"
 ...
-$ python export-kobo.py KoboReader.sqlite --bookid 1
+$ python3 export-kobo.py KoboReader.sqlite --bookid 1
 ...
 ```
 
 You can also exporting to a file redurecting the output of the script:
 ``` bash
-$ python export-kobo.py KoboReader.sqlite --bookid 1 > Alice\ in\ Wonderland.txt
+$ python3 export-kobo.py KoboReader.sqlite --bookid 1 > Alice\ in\ Wonderland.txt
 ```
 
 Alternatively, you can export to a CSV file with ``--csv --output FILE``
@@ -131,7 +133,7 @@ and then open the resulting output file with a spreadsheet application,
 disregarding the annotations/highlights you are not interested in:
 
 ```bash
-$ python export-kobo.py KoboReader.sqlite --csv --output notes.csv
+$ python3 export-kobo.py KoboReader.sqlite --csv --output notes.csv
 $ libreoffice notes.csv
 ```
 
