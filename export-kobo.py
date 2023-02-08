@@ -126,7 +126,7 @@ class Item(object):
 
     def __init__(self, values):
         self.volumeid = values[0]
-        self.text = values[1].strip().rstrip()
+        self.text = values[1].strip().rstrip() if values[1] else None
         self.annotation = values[2]
         self.extraannotationdata = values[3]
         self.datecreated = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
@@ -324,56 +324,54 @@ class ExportKobo(CommandLineTool):
     ]
 
     # Query all books info and add Attribution with a Join using VolumeID
-    QUERY_ITEMS = (
-        "SELECT "
-        "Book.VolumeID, "
-        "Book.Text, "
-        "Book.Annotation, "
-        "Book.ExtraAnnotationData, "
-        "Book.DateCreated, "
-        "Book.DateModified, "
-        "Book.BookTitle, "
-        "Book.Title, "
-        "Attr.Attribution "
-        "FROM "
-        "(	 "
-        "SELECT "
-        "Bookmark.VolumeID, "
-        "Bookmark.Text, "
-        "Bookmark.Annotation, "
-        "Bookmark.ExtraAnnotationData, "
-        "Bookmark.DateCreated, "
-        "Bookmark.DateModified, "
-        "content.BookTitle, "
-        "content.Title, "
-        "content.Attribution, "
-        "content.ContentID "
-        "FROM Bookmark INNER JOIN content "
-        "ON Bookmark.ContentID = content.ContentID "
-        ") as Book "
-        "LEFT JOIN "
-        "( "
-        "SELECT "
-        "Bookmark.VolumeID, "
-        "content.Attribution "
-        "FROM Bookmark INNER JOIN content "
-        "ON Bookmark.VolumeID = content.ContentID "
-        ") as Attr "
-        "ON Book.VolumeID = Attr.VolumeID "
-        "GROUP BY Book.DateCreated "
-        "ORDER BY Book.DateCreated ASC;"
-    )
+    QUERY_ITEMS = """
+        SELECT 
+         Book.VolumeID, 
+         Book.Text, 
+         Book.Annotation, 
+         Book.ExtraAnnotationData, 
+         Book.DateCreated, 
+         Book.DateModified, 
+         Book.BookTitle, 
+         Book.Title, 
+         Attr.Attribution 
+        FROM (
+          SELECT 
+            Bookmark.VolumeID, 
+            Bookmark.Text, 
+            Bookmark.Annotation, 
+            Bookmark.ExtraAnnotationData, 
+            Bookmark.DateCreated, 
+            Bookmark.DateModified, 
+            content.BookTitle, 
+            content.Title, 
+            content.Attribution, 
+            content.ContentID 
+          FROM Bookmark INNER JOIN content 
+          ON Bookmark.ContentID = content.ContentID 
+        ) as Book 
+        LEFT JOIN (
+          SELECT 
+            Bookmark.VolumeID, 
+            content.Attribution 
+          FROM Bookmark INNER JOIN content 
+          ON Bookmark.VolumeID = content.ContentID 
+        ) as Attr 
+        ON Book.VolumeID = Attr.VolumeID 
+        GROUP BY Book.DateCreated 
+        ORDER BY Book.DateCreated ASC;
+    """
 
-    QUERY_BOOKS = (
-        "SELECT DISTINCT "
-        "Bookmark.VolumeID, "
-        "content.BookTitle, "
-        "content.Title, "
-        "content.Attribution "
-        "FROM Bookmark INNER JOIN content "
-        "ON Bookmark.VolumeID = content.ContentID "
-        "ORDER BY content.Title;"
-    )
+    QUERY_BOOKS = """
+        SELECT DISTINCT 
+        Bookmark.VolumeID, 
+        content.BookTitle, 
+        content.Title, 
+        content.Attribution 
+        FROM Bookmark INNER JOIN content 
+        ON Bookmark.VolumeID = content.ContentID 
+        ORDER BY content.Title;
+    """
 
     def __init__(self):
         super(ExportKobo, self).__init__()
@@ -519,7 +517,7 @@ class ExportKobo(CommandLineTool):
         """
         db_path = self.vargs["db"]
         if not os.path.exists(db_path):
-            self.error("Unable to read the KoboReader.sqlite file. Please check that the path is correct and that you have permission to read it.")
+            self.error("Unable to read KoboReader.sqlite file. Please check that the path is correct and that you have permission to read it.")
         try:
             sql_connection = sqlite3.connect(db_path)
             sql_cursor = sql_connection.cursor()
@@ -533,9 +531,5 @@ class ExportKobo(CommandLineTool):
         return data
 
 
-def main():
-    ExportKobo().run()
-
-
 if __name__ == "__main__":
-    main()
+    ExportKobo().run()
