@@ -66,7 +66,7 @@ Reference text:
 === === ===
 ```
 
-### Use web server
+### Web server
 
 1. run `$ python3 export-kobo.py KoboReader.sqlite --ui`
 2. open `http://127.0.0.1:5000` (or other port)
@@ -112,6 +112,13 @@ In this case the database file is called ``Kobo.sqlite``
 and is located in the directory
 ``C:\Users\[your user name]\AppData\Local\Kobo\Kobo Desktop Edition\``.
 
+## Development
+
+For the web version, the CSS is generated with tailwind. To run the CLI and produce
+the CSS output, first make sure you have tailwind installed globally, then run 
+```bash
+$ npx tailwindcss -i ./static/main.css -o ./static/styles.css --watch
+```
 
 ## Troubleshooting
 
