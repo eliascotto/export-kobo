@@ -1,5 +1,5 @@
 # export-kobo
-A Python tool to export annotations and highlights from a Kobo SQLite file. This is a maintained version of [export-kobo](https://github.com/pettarin/export-kobo) by Alberto Pettarin.
+A Python tool to export annotations and highlights from a Kobo SQLite file. Now with a web UI.
 
 Works with Python 3 only.
 
@@ -10,6 +10,9 @@ Works with Python 3 only.
 ```bash
 $ # print all annotations and highlights to stdout
 $ python3 export-kobo.py KoboReader.sqlite
+
+$ # start a web server to navigate the content with a UI
+$ python3 export-kobo.py KoboReader.sqlite --ui
 
 $ # print the help
 $ python3 export-kobo.py --help
@@ -45,7 +48,7 @@ $ # as above, assuming "Alice in Wonderland" has ID "12" in the list printed by 
 $ python3 export-kobo.py KoboReader.sqlite --bookid 12
 ```
 
-Example output
+#### Example output
 ```
 Type:           highlight
 Title:          Alice in Wonderland
@@ -61,9 +64,12 @@ Reference text:
 === === ===
 “Curiouser and curiouser!” cried Alice (she was so much surprised, that for the moment she quite forgot how to speak good English);
 === === ===
-
-...
 ```
+
+### Use web server
+
+1. run `$ python3 export-kobo.py KoboReader.sqlite --ui`
+2. open `http://127.0.0.1:5000` (or other port)
 
 ## Installation
 
@@ -92,6 +98,12 @@ Reference text:
 5. Now you can run the script as explained above, for example:
     ```bash
     $ python3 export-kobo.py KoboReader.sqlite
+    ```
+
+6. (Optional) If you want to use the web server, make sure you have installed
+   Flask in your python environment.
+   ```bash
+    $ pip3 install flask
     ```
 
 NOTE (2018-02-28): Frederic Da Vitoria confirms that the export script
@@ -186,6 +198,8 @@ The original version of this script is from [Alberto Pettarin](https://github.co
 
 ## Acknowledgments
 
+Alberto Pettarin for the [original version](https://github.com/pettarin/export-kobo).
+
 * Chris Krycho contributed a fix for a typo in month names.
 * Pierre-Arnaud Rabier suggested adding an option to extract the annotations and highlights for a single ebook.
 * Nick Kalogirou and Andrea Moro provided me with theirs KoboReader.sqlite file with the new schema.
@@ -201,4 +215,4 @@ The original version of this script is from [Alberto Pettarin](https://github.co
 
 ---
 
-Elia Scotto | [Website](https://www.eliascotto.com)
+Elia Scotto | [Website](https://www.scotto.me)

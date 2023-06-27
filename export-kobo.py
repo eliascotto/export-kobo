@@ -5,6 +5,7 @@ import io
 import os
 import sqlite3
 import sys
+from flask import Flask, g, render_template
 
 
 DAYS = [
@@ -32,6 +33,33 @@ MONTHS = [
     "December",
 ]
 
+app = Flask(__name__)
+book_manager = None
+
+@app.before_request
+def before_request():
+    g.book_manager = book_manager
+
+@app.route('/')
+def index():
+    """
+    Index page displays only the list of books.
+    """
+    books = [x[1] for x in g.book_manager.get_books()]
+    return render_template('index.html', books=books)
+
+@app.route('/book/<int:book_id>')
+def book_details(book_id):
+    """
+    When user click on a book, show all the information displayed.
+    """
+    books = [x[1] for x in g.book_manager.get_books()]
+    (book, items) = g.book_manager.get_book_with_items_by_index(book_id)
+    if book and items:
+        return render_template('index.html', books=books, book=book, book_items=items)
+    else:
+        return "Book not found."
+
 
 class CommandLineTool(object):
     """
@@ -40,7 +68,6 @@ class CommandLineTool(object):
 
     It is based on ``argparse``.
     """
-
     # overload in the actual subclass
     #
     AP_PROGRAM = sys.argv[0]
@@ -135,6 +162,7 @@ class Item(object):
         self.chapter = values[7]
         self.author = book.author
         self.kind = self.BOOKMARK
+
         if (self.text is not None) and (self.text != "") and (self.annotation is not None) and (self.annotation != ""):
             self.kind = self.ANNOTATION
         elif (self.text is not None) and (self.text != ""):
@@ -261,6 +289,11 @@ class ExportKobo(CommandLineTool):
             "help": "Path of the input KoboReader.sqlite file"
         },
         {
+            "name": "--ui",
+            "action": "store_true",
+            "help": "Start a web server to navigate the books"
+        },
+        {
             "name": "--output",
             "nargs": "?",
             "type": str,
@@ -375,6 +408,7 @@ class ExportKobo(CommandLineTool):
 
     def __init__(self):
         super(ExportKobo, self).__init__()
+        self.books = []
         self.items = []
 
     def actual_command(self):
@@ -385,66 +419,110 @@ class ExportKobo(CommandLineTool):
         if self.vargs["db"] is None:
             self.error("You must specify the path to your KoboReader.sqlite file.")
 
+        # list of books
         dict_books, enum_books = self.extract_books()
-        if self.vargs["list"]: # export list of books
-            output = []
-            output.append(("ID", "AUTHOR", "TITLE"))
-            for (i, b) in enum_books:
-                output.append((i, b.author, b.title))
-            if self.vargs["csv"]:
-                output = self.list_to_csv(output)
-            else:
-                frmt = lambda v: "{}\t{:30}\t{}".format(v[0], v[1] or "None", v[2] or "None")
-                output = "\n".join([frmt(v) for v in output])
-        else: # export annotations and/or highlights
-            items = self.read_items(dict_books, enum_books)
-            if self.vargs["kindle"]:
-                # kindle format
-                output = "\n".join([i.kindle_my_clippings() for i in items])
-            elif self.vargs["csv"]:
-                # CSV format
-                output = self.list_to_csv([i.csv_tuple() for i in items])
-            elif self.vargs["markdown"]:
-                output = self.list_to_markdown(items, enum_books)
-            elif self.vargs["raw"]:
-                output = "\n".join([("{}\n".format(i.text)) for i in items])
-            else:
-                # human-readable format
-                output = "\n".join([("{}\n".format(i)) for i in items])
+        # annotations and highlights
+        self.items = self.read_items(dict_books, enum_books)
 
-        if self.vargs["output"] is not None:
-            # write to file
-            try:
-                with io.open(self.vargs["output"], "w", encoding="utf-8") as f:
-                    f.write(output)
-            except IOError:
-                self.error("Unable to write output file. Please check that the path is correct and that you have write permission on it.")
-        elif self.vargs["info"]:
-            # print some info about the extraction
-            self.print_stdout("Books with annotations or highlights: {}".format(len(enum_books)))
-            if not self.vargs["list"]:
-                self.print_stdout("Total annotations and/or highlights:  {}".format(len(items)))
+        if self.vargs["ui"]:
+            self.run_server()
         else:
-            # write to stdout
-            try:
-                self.print_stdout(output)
-            except UnicodeEncodeError:
-                self.print_stdout(output.encode("ascii", errors="replace"))
+            if self.vargs["list"]:
+                # export list of books
+                output = []
+                output.append(("ID", "AUTHOR", "TITLE"))
 
-    def list_to_markdown(self, items, books):
+                for (i, b) in enum_books:
+                    output.append((i, b.author, b.title))
+
+                if self.vargs["csv"]:
+                    output = self.list_to_csv(output)
+                else:
+                    frmt = lambda v: "{}\t{:30}\t{}".format(v[0], v[1] or "None", v[2] or "None")
+                    output = "\n".join([frmt(v) for v in output])
+            else:
+                # export annotations and/or highlights
+                if self.vargs["kindle"]:
+                    # kindle format
+                    output = "\n".join([i.kindle_my_clippings() for i in self.items])
+                elif self.vargs["csv"]:
+                    # CSV format
+                    output = self.list_to_csv([i.csv_tuple() for i in self.items])
+                elif self.vargs["markdown"]:
+                    output = self.list_to_markdown(enum_books)
+                elif self.vargs["raw"]:
+                    output = "\n".join([("{}\n".format(i.text)) for i in self.items])
+                else:
+                    # human-readable format
+                    output = "\n".join([("{}\n".format(i)) for i in self.items])
+
+            if self.vargs["output"] is not None:
+                # write to file
+                try:
+                    with io.open(self.vargs["output"], "w", encoding="utf-8") as f:
+                        f.write(output)
+                except IOError:
+                    self.error("Unable to write output file. Please check that the path is correct and that you have write permission on it.")
+            elif self.vargs["info"]:
+                # print some info about the extraction
+                self.print_stdout("Books with annotations or highlights: {}".format(len(enum_books)))
+                if not self.vargs["list"]:
+                    self.print_stdout("Total annotations and/or highlights:  {}".format(len(items)))
+            else:
+                # write to stdout
+                try:
+                    self.print_stdout(output)
+                except UnicodeEncodeError:
+                    self.print_stdout(output.encode("ascii", errors="replace"))
+
+    def get_books(self):
+        """
+        Returns a list of tuple, with volumeid and Book instance.
+        """
+        if not self.books:
+            self.books = [(d[0], Book(d)) for d in self.query(self.QUERY_BOOKS)]
+        return self.books
+
+    def get_book_by_id(self, bookid):
+        """
+        Returns a book by it's book id.
+        """
+        return self.books[int(bookid) - 1][1]
+
+    def get_book_with_items_by_index(self, book_idx):
+        """
+        Returns a book by index and its items, in a tuple.
+        """
+        try:
+            book = self.books[book_idx][1]
+            filtered_items = [i for i in self.items if i.volumeid == book.volumeid]
+            return (book, filtered_items)
+        except Exception:
+            self.error("Book not found at index.")
+
+    def run_server(self):
+        """
+        Starts the server.
+        """
+        app.run()
+
+    def list_to_markdown(self, books):
+        """
+        Convert the given Item data into a well-formed Markdown string.
+        """
         output = ""
         book = self.current_book(books)
 
         if book == None:
-            # no books specified
+            # no books specified, so print list of books
             for (i, b) in books:
                 output += b.to_markdown()
                 # filter items of the current book
-                filtered_items = [i for i in items if i.volumeid == b.volumeid]
+                filtered_items = [i for i in self.items if i.volumeid == b.volumeid]
                 output += "".join([i.markdown() for i in filtered_items])
         else:
             output += book.to_markdown()
-            output += "".join([i.markdown() for i in items])
+            output += "".join([i.markdown() for i in self.items])
         return output
 
     def list_to_csv(self, data):
@@ -460,18 +538,13 @@ class ExportKobo(CommandLineTool):
                 writer.writerow(tuple([(v.encode("ascii", errors="replace") if v is not None else "") for v in d]))
         return output.getvalue()
 
-    def enumerate_books(self):
-        
-        books = [Book(d) for d in self.query(self.QUERY_BOOKS)]
-        return list(enumerate(books, start=1))
-
     def extract_books(self):
         """
         Return the list of books into two formats:
         a dict with ``{volumeId: Book}``,
         a list of pairs ``(int, Book)`` with the index starting at one.
         """
-        books = [(d[0], Book(d)) for d in self.query(self.QUERY_BOOKS)]
+        books = self.get_books()
         ids, books = zip(*books)
         return dict(zip(ids, books)), list(enumerate(books, start=1))
 
@@ -488,11 +561,15 @@ class ExportKobo(CommandLineTool):
             self.error("The bookid value must be an integer between 1 and {}".format(len(books)))
 
     def current_book(self, books):
+        """
+        Returns the current book.
+        """
         bookid, booktitle = self.vargs["bookid"], self.vargs["book"]
-        if (bookid is not None) and (booktitle is not None):
+
+        if (bookid is None) and (booktitle is not None):
             return None
         if bookid is not None:
-            return books[int(bookid) - 1][1]
+            return self.get_book_by_id(bookid)
         if booktitle is not None:
             return filter(lambda i, b: b.title == booktitle, books)[0]
 
@@ -538,4 +615,5 @@ class ExportKobo(CommandLineTool):
 
 
 if __name__ == "__main__":
-    ExportKobo().run()
+    book_manager = ExportKobo()
+    book_manager.run()
