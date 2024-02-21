@@ -5,7 +5,6 @@ import io
 import os
 import sqlite3
 import sys
-from flask import Flask, g, render_template
 
 
 DAYS = [
@@ -33,32 +32,7 @@ MONTHS = [
     "December",
 ]
 
-app = Flask(__name__)
 book_manager = None
-
-@app.before_request
-def before_request():
-    g.book_manager = book_manager
-
-@app.route('/')
-def index():
-    """
-    Index page displays only the list of books.
-    """
-    books = [x[1] for x in g.book_manager.get_books()]
-    return render_template('index.html', books=books)
-
-@app.route('/book/<int:book_id>')
-def book_details(book_id):
-    """
-    When user click on a book, show all the information displayed.
-    """
-    books = [x[1] for x in g.book_manager.get_books()]
-    (book, items) = g.book_manager.get_book_with_items_by_index(book_id)
-    if book and items:
-        return render_template('index.html', books=books, book=book, book_items=items)
-    else:
-        return "Book not found."
 
 
 class CommandLineTool(object):
@@ -518,6 +492,33 @@ class ExportKobo(CommandLineTool):
         """
         Starts the server.
         """
+        from flask import Flask, g, render_template
+        app = Flask(__name__)
+
+        @app.before_request
+        def before_request():
+            g.book_manager = book_manager
+
+        @app.route('/')
+        def index():
+            """
+            Index page displays only the list of books.
+            """
+            books = [x[1] for x in g.book_manager.get_books()]
+            return render_template('index.html', books=books)
+
+        @app.route('/book/<int:book_id>')
+        def book_details(book_id):
+            """
+            When user click on a book, show all the information displayed.
+            """
+            books = [x[1] for x in g.book_manager.get_books()]
+            (book, items) = g.book_manager.get_book_with_items_by_index(book_id)
+            if book and items:
+                return render_template('index.html', books=books, book=book, book_items=items)
+            else:
+                return "Book not found."
+
         app.run()
 
     def list_to_markdown(self, books):
