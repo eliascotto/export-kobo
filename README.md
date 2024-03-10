@@ -3,7 +3,7 @@ A Python tool to export annotations and highlights from a Kobo SQLite file. Now 
 
 Works with Python 3 only.
 
-**Tested with latest Kobo Clara**
+**Tested with the latest Kobo Clara**
 
 ## Usage
 
@@ -28,6 +28,9 @@ $ python3 export-kobo.py KoboReader.sqlite --kindle
 
 $ # export in Markdown list format
 $ python3 export-kobo.py KoboReader.sqlite --markdown
+
+$ # export in Markdown list format and add chapter headings 
+$ python3 export-kobo.py KoboReader.sqlite --markdown --add-chapter-headings
 
 $ # export annotations only
 $ python3 export-kobo.py KoboReader.sqlite --annotations-only
@@ -213,7 +216,7 @@ Alberto Pettarin for the [original version](https://github.com/pettarin/export-k
 * Curiositry suggested adding an option to extract in Kindle My Clippings format.
 * Frederic Da Vitoria confirmed that the export script works for the Kobo app for Desktop PC.
 * Matthieu Nantern contributed the ``raw`` export mode.
-
+* Burkhard Ringlein contributed the `--add-chapter-headings` mode.
 
 ## License
 
@@ -222,4 +225,4 @@ Alberto Pettarin for the [original version](https://github.com/pettarin/export-k
 
 ---
 
-Elia Scotto | [Website](https://www.scotto.me)
+originally by Elia Scotto | [Website](https://www.scotto.me)
