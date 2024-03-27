@@ -5,7 +5,6 @@ import io
 import os
 import sqlite3
 import sys
-from flask import Flask, g, render_template
 
 
 DAYS = [
@@ -33,32 +32,7 @@ MONTHS = [
     "December",
 ]
 
-app = Flask(__name__)
 book_manager = None
-
-@app.before_request
-def before_request():
-    g.book_manager = book_manager
-
-@app.route('/')
-def index():
-    """
-    Index page displays only the list of books.
-    """
-    books = [x[1] for x in g.book_manager.get_books()]
-    return render_template('index.html', books=books)
-
-@app.route('/book/<int:book_id>')
-def book_details(book_id):
-    """
-    When user click on a book, show all the information displayed.
-    """
-    books = [x[1] for x in g.book_manager.get_books()]
-    (book, items) = g.book_manager.get_book_with_items_by_index(book_id)
-    if book and items:
-        return render_template('index.html', books=books, book=book, book_items=items)
-    else:
-        return "Book not found."
 
 
 class CommandLineTool(object):
@@ -174,14 +148,22 @@ class Item(object):
         """
         return (self.kind, self.booktitle, self.author, self.chapter, self.datecreated, self.datemodified, self.annotation, self.text)
 
-    def markdown(self):
+    def markdown(self, last_entry=None, add_chapter_headings=False):
         """
         Output markdown item contains only highlights and notes.
         """
         if self.kind == self.ANNOTATION:
-            output = "- {}\n\n  *{}*\n\n".format(self.text, self.annotation)
+            if add_chapter_headings and (last_entry is None or last_entry.chapter != self.chapter):
+                output = f"\n### {self.chapter}\n\n"
+                output += "- {}\n\n  *{}*\n\n".format(self.text, self.annotation)
+            else:
+                output = "- {}\n\n  *{}*\n\n".format(self.text, self.annotation)
         elif self.kind == self.HIGHLIGHT:
-            output = "- {}\n\n".format(self.text)
+            if add_chapter_headings and (last_entry is None or last_entry.chapter != self.chapter):
+                #output = "- {}\n\n".format(self.text)
+                output = f"\n### {self.chapter}\n\n - {self.text}\n"
+            else:
+                output = "- {}\n".format(self.text)
         else:
             output = ""
         return output
@@ -309,6 +291,12 @@ class ExportKobo(CommandLineTool):
             "name": "--markdown",
             "action": "store_true",
             "help": "Output in Markdown list format"
+        },
+        {
+            # "name": "--group-by-chapter",
+            "name": "--add-chapter-headings",
+            "action": "store_true",
+            "help": "Add the chapter headings to the output (markdown only)."
         },
         {
             "name": "--kindle",
@@ -504,6 +492,33 @@ class ExportKobo(CommandLineTool):
         """
         Starts the server.
         """
+        from flask import Flask, g, render_template
+        app = Flask(__name__)
+
+        @app.before_request
+        def before_request():
+            g.book_manager = book_manager
+
+        @app.route('/')
+        def index():
+            """
+            Index page displays only the list of books.
+            """
+            books = [x[1] for x in g.book_manager.get_books()]
+            return render_template('index.html', books=books)
+
+        @app.route('/book/<int:book_id>')
+        def book_details(book_id):
+            """
+            When user click on a book, show all the information displayed.
+            """
+            books = [x[1] for x in g.book_manager.get_books()]
+            (book, items) = g.book_manager.get_book_with_items_by_index(book_id)
+            if book and items:
+                return render_template('index.html', books=books, book=book, book_items=items)
+            else:
+                return "Book not found."
+
         app.run()
 
     def list_to_markdown(self, books):
@@ -513,7 +528,7 @@ class ExportKobo(CommandLineTool):
         output = ""
         book = self.current_book(books)
 
-        if book == None:
+        if book is None:
             # no books specified, so print list of books
             for (i, b) in books:
                 output += b.to_markdown()
@@ -522,7 +537,13 @@ class ExportKobo(CommandLineTool):
                 output += "".join([i.markdown() for i in filtered_items])
         else:
             output += book.to_markdown()
-            output += "".join([i.markdown() for i in self.items])
+            if not self.vargs["add_chapter_headings"]:
+               output += "".join([i.markdown() for i in self.items])
+            else:
+                last_entry = None
+                for i in self.items:
+                    output += i.markdown(last_entry=last_entry, add_chapter_headings=True)
+                    last_entry = i
         return output
 
     def list_to_csv(self, data):
