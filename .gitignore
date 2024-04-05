@@ -130,6 +130,7 @@ dmypy.json
 
 # Kobo db
 KoboReader.sqlite
+*.sqlite*
 
 # vim
 *.swp

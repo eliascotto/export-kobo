@@ -242,6 +242,7 @@ class Book(object):
         self.booktitle = values[1]
         self.title = values[2]
         self.author = values[3]
+        self.itemscount = values[4]
 
     def __repr__(self):
         return "({}, {}, {}, {})".format(self.volumeid, self.booktitle, self.title, self.author)
@@ -384,14 +385,17 @@ class ExportKobo(CommandLineTool):
     """
 
     QUERY_BOOKS = """
-        SELECT DISTINCT 
-        Bookmark.VolumeID, 
-        content.BookTitle, 
-        content.Title, 
-        content.Attribution 
-        FROM Bookmark INNER JOIN content 
-        ON Bookmark.VolumeID = content.ContentID 
-        ORDER BY content.Title;
+        SELECT DISTINCT
+            b.VolumeID,
+            c.BookTitle,
+            c.Title,
+            c.Attribution,
+            (SELECT COUNT(*) FROM Bookmark b2 WHERE b2.VolumeID = b.VolumeID) AS Items
+        FROM
+            Bookmark b
+            INNER JOIN content c ON b.VolumeID = c.ContentID
+        ORDER BY
+            c.Title;
     """
 
     def __init__(self):
@@ -519,7 +523,7 @@ class ExportKobo(CommandLineTool):
             else:
                 return "Book not found."
 
-        app.run()
+        app.run(port=5001)
 
     def list_to_markdown(self, books):
         """

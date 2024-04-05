@@ -10,33 +10,34 @@
 
   <main class="flex flex-row m-2">
 
-    <div class="w-[25%]">
-      <h1 class="text-4xl mb-5">Books List</h1>
-      <ul class="overflow-x-hidden px-2">
-        {% for book in books %}
-        <li class="my-1 truncate">
-          <a class="hover:underline" href="/book/{{loop.index0}}">
-            {{ book.title }}
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
+    <div class="w-[22.5%] overflow-y-auto fixed h-screen">
+      <nav class="relative">
+        <h1 class="top-0 text-4xl mb-5 px-2 bg-inherit">Books List</h1>
+        <ul class="px-2 pb-4">
+          {% for book in books %}
+          <li class="my-1 truncate">
+            <a class="hover:underline" href="/book/{{loop.index0}}">
+              {{ book.title }} 
+              <span class="text-gray-500 text-xs ml">({{ book.itemscount }})</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </nav>
     </div>
 
     {% if book %}
-    <div class="flex-1">
-      <h1 class="text-4xl mb-5">{{ book.title }}</h1>
-      <h1 class="text-3xl mb-5">{{ book.author }}</h1>
-
+    <div class="flex-1 ml-[22.5%] pl-6 pr-4">
+      <h1 class="text-4xl mb-5">{{ book.title }} - {{ book.author }}</h1>
       <h2>Items: {{book_items|length}}</h2>
       <ul>
         {% for highlight in book_items %}
         <li>
-          <div class="my-4 mx-2 p-3 border border-1 rounded">
+          <div class="my-4 p-3 border border-1 rounded">
             {{ highlight.text }}
 
             {% if highlight.kind == "annotation" %}
-            <div class="my-4 mx-2 p-3 border border-1 rounded">
+            <div class="my-4 p-3 border border-1 rounded">
               {{ highlight.annotation }}
             </div>
             {% endif %}
