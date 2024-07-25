@@ -129,11 +129,10 @@ class Item(object):
         self.volumeid = values[0]
         self.text = values[1].strip().rstrip() if values[1] else None
         self.annotation = values[2]
-        self.extraannotationdata = values[3]
-        self.datecreated = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
-        self.datemodified = values[5] if values[5] is not None else "1970-01-01T00:00:00.000"
+        self.datecreated = values[3] if values[3] is not None else "1970-01-01T00:00:00.000"
+        self.datemodified = values[4] if values[4] is not None else "1970-01-01T00:00:00.000"
         self.booktitle = book.title
-        self.chapter = values[7]
+        self.chapter = values[6]
         self.author = book.author
         self.kind = self.BOOKMARK
 
@@ -351,7 +350,6 @@ class ExportKobo(CommandLineTool):
          Book.VolumeID, 
          Book.Text, 
          Book.Annotation, 
-         Book.ExtraAnnotationData, 
          Book.DateCreated, 
          Book.DateModified, 
          Book.BookTitle, 
@@ -362,7 +360,6 @@ class ExportKobo(CommandLineTool):
             Bookmark.VolumeID, 
             Bookmark.Text, 
             Bookmark.Annotation, 
-            Bookmark.ExtraAnnotationData, 
             Bookmark.DateCreated, 
             Bookmark.DateModified, 
             content.BookTitle, 
