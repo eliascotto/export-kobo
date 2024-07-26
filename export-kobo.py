@@ -135,6 +135,7 @@ class Item(object):
         self.chapter = values[6]
         self.author = book.author
         self.kind = self.BOOKMARK
+        self.dateformatted = self.format_date()
 
         if (self.text is not None) and (self.text != "") and (self.annotation is not None) and (self.annotation != ""):
             self.kind = self.ANNOTATION
@@ -480,7 +481,7 @@ class ExportKobo(CommandLineTool):
 
     def get_book_with_items_by_index(self, book_idx):
         """
-        Returns a book by index and its items, in a tuple.
+        Returns a book by index with its items formatted, in a tuple.
         """
         try:
             book = self.books[book_idx][1]
@@ -531,7 +532,9 @@ class ExportKobo(CommandLineTool):
 
         if book is None:
             # no books specified, so print list of books
-            for (i, b) in books:
+            for (idx, b) in books:
+                if idx != 0:
+                    output += "\n\n"
                 output += b.to_markdown()
                 # filter items of the current book
                 filtered_items = [i for i in self.items if i.volumeid == b.volumeid]
