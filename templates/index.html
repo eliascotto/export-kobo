@@ -10,7 +10,7 @@
 
   <main class="flex flex-row m-2">
 
-    <div class="w-[22.5%] overflow-y-auto fixed h-screen">
+    <div class="w-[22.5%] overflow-y-auto fixed h-screen print:hidden">
       <nav class="relative">
         <h1 class="top-0 text-4xl mb-5 px-2 bg-inherit">Books</h1>
         <ul class="px-2 pb-4">
@@ -28,7 +28,7 @@
     </div>
 
     {% if book %}
-    <div class="flex-1 ml-[22.5%] pl-6 pr-4">
+    <div class="flex-1 ml-[22.5%] print:ml-0 pl-6 pr-4">
       <h1 class="text-4xl mb-5 mt-3">{{ book.title }} - {{ book.author }}</h1>
       <h2>Items: {{ book_items|length }}</h2>
       <ul>

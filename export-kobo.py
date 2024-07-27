@@ -355,6 +355,7 @@ class ExportKobo(CommandLineTool):
          Book.DateModified, 
          Book.BookTitle, 
          Book.Title, 
+         Book.ChapterProgress,
          Attr.Attribution 
         FROM (
           SELECT 
@@ -363,6 +364,7 @@ class ExportKobo(CommandLineTool):
             Bookmark.Annotation, 
             Bookmark.DateCreated, 
             Bookmark.DateModified, 
+            Bookmark.ChapterProgress,
             content.BookTitle, 
             content.Title, 
             content.Attribution, 
@@ -379,7 +381,7 @@ class ExportKobo(CommandLineTool):
         ) as Attr 
         ON Book.VolumeID = Attr.VolumeID 
         GROUP BY Book.DateCreated 
-        ORDER BY Book.DateCreated ASC;
+        ORDER BY Book.ChapterProgress ASC, Book.DateCreated ASC;
     """
 
     QUERY_BOOKS = """
