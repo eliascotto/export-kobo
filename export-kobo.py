@@ -82,10 +82,10 @@ class CommandLineTool(object):
         Run the command line tool.
         """
         self.vargs = vars(self.parser.parse_args())
-        self.actual_command()
+        self.run_command()
         sys.exit(0)
 
-    def actual_command(self):
+    def run_command(self):
         """
         The actual command to be run.
 
@@ -345,41 +345,47 @@ class ExportKobo(CommandLineTool):
         },
     ]
 
-    # Query all books info and add Attribution with a Join using VolumeID
-    QUERY_ITEMS = """
+    QUERY_DB_VERSION = "SELECT version FROM DbVersion;"
+
+    # Query items: get all books items (highlights and annotation) using VolumeID.
+    # 
+    # There's a problem for new DB version (175): 
+    # ContentID gets different for some reason between Bookmark and Content.
+    # I'm not sure if this is a problem due to some annotation migration or is
+    # a bug into the db of Kobo Color model.
+    # Once confirmed please fix and use a single query if possible.
+    QUERY_ITEMS_V175 = """
         SELECT 
-         Book.VolumeID, 
-         Book.Text, 
-         Book.Annotation, 
-         Book.DateCreated, 
-         Book.DateModified, 
-         Book.BookTitle, 
-         Book.Title, 
-         Attr.Attribution 
-        FROM (
-          SELECT 
-            Bookmark.VolumeID, 
-            Bookmark.Text, 
-            Bookmark.Annotation, 
-            Bookmark.DateCreated, 
-            Bookmark.DateModified, 
-            content.BookTitle, 
-            content.Title, 
-            content.Attribution, 
-            content.ContentID 
-          FROM Bookmark INNER JOIN content 
-          ON Bookmark.ContentID = content.ContentID 
-        ) as Book 
-        LEFT JOIN (
-          SELECT 
-            Bookmark.VolumeID, 
-            content.Attribution 
-          FROM Bookmark INNER JOIN content 
-          ON Bookmark.VolumeID = content.ContentID 
-        ) as Attr 
-        ON Book.VolumeID = Attr.VolumeID 
-        GROUP BY Book.DateCreated 
-        ORDER BY Book.DateCreated ASC;
+            b.VolumeID, 
+            b.Text, 
+            b.Annotation, 
+            b.DateCreated, 
+            b.DateModified, 
+            c.BookTitle, 
+            c.Title, 
+            c.Attribution as Author, 
+            c.ContentID 
+        FROM Bookmark b INNER JOIN content c
+        ON b.VolumeID = c.BookID 
+        GROUP BY b.DateCreated 
+        ORDER BY b.DateCreated ASC;
+    """
+
+    QUERY_ITEMS_V174 = """
+        SELECT 
+            b.VolumeID, 
+            b.Text, 
+            b.Annotation, 
+            b.DateCreated, 
+            b.DateModified, 
+            c.BookTitle, 
+            c.Title, 
+            c.Attribution as Author, 
+            c.ContentID 
+        FROM Bookmark b LEFT JOIN content c
+        ON b.ContentID = c.ContentID 
+        GROUP BY b.DateCreated 
+        ORDER BY b.DateCreated ASC;
     """
 
     QUERY_BOOKS = """
@@ -387,7 +393,7 @@ class ExportKobo(CommandLineTool):
             b.VolumeID,
             c.BookTitle,
             c.Title,
-            c.Attribution,
+            c.Attribution as Author,
             (SELECT COUNT(*) FROM Bookmark b2 WHERE b2.VolumeID = b.VolumeID) AS Items
         FROM
             Bookmark b
@@ -400,30 +406,34 @@ class ExportKobo(CommandLineTool):
         super(ExportKobo, self).__init__()
         self.books = []
         self.items = []
+        self.db_version = 0
 
-    def actual_command(self):
+    def run_command(self):
         """
-        The main function of the tool: parse the parameters,
-        read the given SQLite file, and format/output data as requested.
+        The main function of the tool: 
+            1. parse the parameters,
+            2. read the given SQLite file
+            3. format/output data as requested.
         """
         if self.vargs["db"] is None:
-            self.error("You must specify the path to your KoboReader.sqlite file.")
+            self.error("You must specify a valid path to your KoboReader.sqlite file.")
 
-        # list of books
-        dict_books, enum_books = self.extract_books()
-        # annotations and highlights
-        self.items = self.read_items(dict_books, enum_books)
+        # read db version
+        self.read_db_version()
+
+        # read list of books from db
+        dict_books, enum_books = self.read_books()
 
         if self.vargs["ui"]:
             self.run_server()
         else:
             if self.vargs["list"]:
-                # export list of books
+                # export: list of books only
                 output = []
                 output.append(("ID", "AUTHOR", "TITLE"))
 
-                for (i, b) in enum_books:
-                    output.append((i, b.author, b.title))
+                for (i, book) in enum_books:
+                    output.append((i, book.author, book.title))
 
                 if self.vargs["csv"]:
                     output = self.list_to_csv(output)
@@ -431,7 +441,9 @@ class ExportKobo(CommandLineTool):
                     frmt = lambda v: "{}\t{:30}\t{}".format(v[0], v[1] or "None", v[2] or "None")
                     output = "\n".join([frmt(v) for v in output])
             else:
-                # export annotations and/or highlights
+                # export: annotations and/or highlights
+                self.read_items(dict_books, enum_books)
+
                 if self.vargs["kindle"]:
                     # kindle format
                     output = "\n".join([i.kindle_my_clippings() for i in self.items])
@@ -452,18 +464,29 @@ class ExportKobo(CommandLineTool):
                     with io.open(self.vargs["output"], "w", encoding="utf-8") as f:
                         f.write(output)
                 except IOError:
-                    self.error("Unable to write output file. Please check that the path is correct and that you have write permission on it.")
+                    self.error("Unable to write output file. Please check that the path is correct and that you have write permissions.")
             elif self.vargs["info"]:
-                # print some info about the extraction
-                self.print_stdout("Books with annotations or highlights: {}".format(len(enum_books)))
+                # Print some info about the extraction
+                self.print_stdout(f"Books with notes: {len(enum_books)}")
                 if not self.vargs["list"]:
-                    self.print_stdout("Total annotations and/or highlights:  {}".format(len(items)))
+                    total_highlights = len([i for i in self.items if i.kind == Item.HIGHLIGHT])
+                    self.print_stdout(
+                        f"Total highlights: {total_highlights}\n"
+                        f"Total annotations: {len(self.items) - total_highlights}"
+                    )
             else:
                 # write to stdout
                 try:
                     self.print_stdout(output)
                 except UnicodeEncodeError:
                     self.print_stdout(output.encode("ascii", errors="replace"))
+
+    def read_db_version(self):
+        """
+        Query the database version and store it as an integer in self.version.
+        """
+        result = self.query(self.QUERY_DB_VERSION)
+        self.db_version = int(result[0][0])
 
     def get_books(self):
         """
@@ -492,7 +515,7 @@ class ExportKobo(CommandLineTool):
 
     def run_server(self):
         """
-        Starts the server.
+        Starts the flask server.
         """
         from flask import Flask, g, render_template
         app = Flask(__name__)
@@ -563,7 +586,7 @@ class ExportKobo(CommandLineTool):
                 writer.writerow(tuple([(v.encode("ascii", errors="replace") if v is not None else "") for v in d]))
         return output.getvalue()
 
-    def extract_books(self):
+    def read_books(self):
         """
         Return the list of books into two formats:
         a dict with ``{volumeId: Book}``,
@@ -601,10 +624,18 @@ class ExportKobo(CommandLineTool):
     def read_items(self, dict_books, enum_books):
         """
         Query the SQLite file, filtering Item objects as specified
-        by the user.
+        by the user. 
+        This function modifies the object's state by setting self.items.
         """
         # Creating a new Item with the relative Book for extract title+author coming from the other table
-        items = [Item(d, dict_books.get(d[0])) for d in self.query(self.QUERY_ITEMS)]
+        items = []
+        print(self.db_version)
+        query = self.QUERY_ITEMS_V175 if self.db_version and self.db_version == 175 else self.QUERY_ITEMS_V174
+        for item in self.query(query):
+            volumeId = item[0]
+            book = dict_books.get(volumeId)
+            items.append(Item(item, book))
+
         if len(items) == 0:
             return items
         if (self.vargs["bookid"] is not None) and (self.vargs["book"] is not None):
@@ -617,9 +648,11 @@ class ExportKobo(CommandLineTool):
             items = [i for i in items if i.kind == Item.HIGHLIGHT]
         if self.vargs["annotations_only"]:
             items = [i for i in items if i.kind == Item.ANNOTATION]
-        return items
+        
+        # Set items into the object
+        self.items = items
 
-    def query(self, query):
+    def query(self, query, fetchone=False):
         """
         Run the given query over the SQLite file.
         """
@@ -630,7 +663,10 @@ class ExportKobo(CommandLineTool):
             sql_connection = sqlite3.connect(db_path)
             sql_cursor = sql_connection.cursor()
             sql_cursor.execute(query)
-            data = sql_cursor.fetchall()
+            if fetchone:
+                data = sql_cursor.fetchone()
+            else:
+                data = sql_cursor.fetchall()
             sql_cursor.close()
             sql_connection.close()
         except Exception as exc:
