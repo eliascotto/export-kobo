@@ -1,7 +1,7 @@
 # export-kobo
 A Python tool to export annotations and highlights from a Kobo SQLite file. Now with a web UI.
 
-Works with Python 3 only.
+Python 3 required.
 
 **Tested with the latest Kobo Clara**
 
@@ -23,11 +23,14 @@ $ python3 export-kobo.py KoboReader.sqlite --output /path/to/out.txt
 $ # export in CSV format
 $ python3 export-kobo.py KoboReader.sqlite --csv
 
+$ # export in Markdown format
+$ python3 export-kobo.py KoboReader.sqlite --markdown
+
+$ # export in JSON format
+$ python3 export-kobo.py KoboReader.sqlite --json
+
 $ # export in Kindle My Clippings format
 $ python3 export-kobo.py KoboReader.sqlite --kindle
-
-$ # export in Markdown list format
-$ python3 export-kobo.py KoboReader.sqlite --markdown
 
 $ # export in Markdown list format and add chapter headings 
 $ python3 export-kobo.py KoboReader.sqlite --markdown --add-chapter-headings
@@ -41,14 +44,20 @@ $ python3 export-kobo.py KoboReader.sqlite --highlights-only
 $ # export as CSV to file annotations only
 $ python3 export-kobo.py KoboReader.sqlite --csv  --annotations-only --output /path/to/out.txt
 
-$ # print the list of books with annotations or highlights to stdout
+$ # print the list of books to stdout
 $ python3 export-kobo.py KoboReader.sqlite --list
+
+$ # print the list of books in CSV format
+$ python3 export-kobo.py KoboReader.sqlite --list --csv
 
 $ # export annotations and highlights for the book "Alice in Wonderland"
 $ python3 export-kobo.py KoboReader.sqlite --book "Alice in Wonderland"
 
 $ # as above, assuming "Alice in Wonderland" has ID "12" in the list printed by --list
 $ python3 export-kobo.py KoboReader.sqlite --bookid 12
+
+$ # export a single book in Markdown format
+$ python3 export-kobo.py KoboReader.sqlite --bookid 12 --markdown
 ```
 
 #### Example output
@@ -75,7 +84,6 @@ Reference text:
 2. open `http://127.0.0.1:5000` (or other port)
 
 ## Installation
-
 
 1. Clone this repository:
     ```bash
@@ -204,7 +212,8 @@ The original version of this script is from [Alberto Pettarin](https://github.co
 * Added Chapter information to the output
 * Restyled output of list and annotations
 * Sort highlight/annotations by `datecreated`
-* Export in Markdown format
+* Export in Markdown, CSV, JSON
+* Added web UI
 
 ## Acknowledgments
 
