@@ -5,6 +5,7 @@ import io
 import os
 import sqlite3
 import sys
+import json
 
 
 DAYS = [
@@ -32,6 +33,7 @@ MONTHS = [
     "December",
 ]
 
+# Main BookManager object
 book_manager = None
 
 
@@ -286,12 +288,17 @@ class ExportKobo(CommandLineTool):
         {
             "name": "--csv",
             "action": "store_true",
-            "help": "Output in CSV format instead of human-readable format"
+            "help": "Output data in CSV format"
         },
         {
             "name": "--markdown",
             "action": "store_true",
             "help": "Output in Markdown list format"
+        },
+        {
+            "name": "--json",
+            "action": "store_true",
+            "help": "Output data in JSON format"
         },
         {
             # "name": "--group-by-chapter",
@@ -302,7 +309,7 @@ class ExportKobo(CommandLineTool):
         {
             "name": "--kindle",
             "action": "store_true",
-            "help": "Output in Kindle 'My Clippings.txt' format instead of human-readable format"
+            "help": "Output in Kindle 'My Clippings.txt' format"
         },
         {
             "name": "--list",
@@ -421,24 +428,26 @@ class ExportKobo(CommandLineTool):
         else:
             if self.vargs["list"]:
                 # export list of books
-                output = []
-                output.append(("ID", "AUTHOR", "TITLE"))
+                books = []
+                books.append(("ID", "AUTHOR", "TITLE"))
 
                 for (i, b) in enum_books:
-                    output.append((i, b.author, b.title))
+                    books.append((i, b.author, b.title))
 
-                if self.vargs["csv"]:
-                    output = self.list_to_csv(output)
+                if self.vargs["json"]:
+                    output = json.dumps(list(dict_books.values()), default=lambda o: o.__dict__, indent=2)
+                elif self.vargs["csv"]:
+                    output = self.list_to_csv(books)
                 else:
                     frmt = lambda v: "{}\t{:30}\t{}".format(v[0], v[1] or "None", v[2] or "None")
-                    output = "\n".join([frmt(v) for v in output])
+                    output = "\n".join([frmt(v) for v in books])
             else:
                 # export annotations and/or highlights
                 if self.vargs["kindle"]:
-                    # kindle format
                     output = "\n".join([i.kindle_my_clippings() for i in self.items])
+                elif self.vargs["json"]:
+                    output = json.dumps(self.items, default=lambda o: o.__dict__, indent=2)
                 elif self.vargs["csv"]:
-                    # CSV format
                     output = self.list_to_csv([i.csv_tuple() for i in self.items])
                 elif self.vargs["markdown"]:
                     output = self.list_to_markdown(enum_books)
