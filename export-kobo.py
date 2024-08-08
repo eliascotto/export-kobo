@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import datetime
 import csv
@@ -639,6 +640,7 @@ class ExportKobo(CommandLineTool):
             self.error("Unable to read KoboReader.sqlite file. Please check that the path is correct and that you have permission to read it.")
         try:
             sql_connection = sqlite3.connect(db_path)
+            sql_connection.execute('PRAGMA temp_store = MEMORY;')
             sql_cursor = sql_connection.cursor()
             sql_cursor.execute(query)
             data = sql_cursor.fetchall()
