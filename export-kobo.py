@@ -129,6 +129,7 @@ class Item(object):
 
     def __init__(self, values, book):
         self.volumeid = values[0]
+        self.bookmarkid = values[9]
         self.text = values[1].strip().rstrip() if values[1] else None
         self.annotation = values[2]
         self.datecreated = values[3] if values[3] is not None else "1970-01-01T00:00:00.000"
@@ -241,13 +242,12 @@ class Book(object):
 
     def __init__(self, values):
         self.volumeid = values[0]
-        self.booktitle = values[1]
-        self.title = values[2]
-        self.author = values[3]
-        self.itemscount = values[4]
+        self.title = values[1]
+        self.author = values[2]
+        self.itemscount = values[3]
 
     def __repr__(self):
-        return "({}, {}, {}, {})".format(self.volumeid, self.booktitle, self.title, self.author)
+        return "({}, {}, {})".format(self.volumeid, self.title, self.author)
 
     def __str__(self):
         return self.__repr__()
@@ -370,9 +370,9 @@ class ExportKobo(CommandLineTool):
             b.DateModified, 
             b.ChapterProgress,
             c.BookTitle, 
-            c.Title, 
+            c.Title as Chapter, 
             c.Attribution as Author, 
-            c.ContentID 
+            b.BookmarkID
         FROM Bookmark b INNER JOIN content c
         ON b.VolumeID = c.BookID 
         GROUP BY b.DateCreated 
@@ -388,9 +388,9 @@ class ExportKobo(CommandLineTool):
             b.DateModified,
             b.ChapterProgress, 
             c.BookTitle, 
-            c.Title, 
+            c.Title as Chapter, 
             c.Attribution as Author, 
-            c.ContentID 
+            b.BookmarkID
         FROM Bookmark b LEFT JOIN content c
         ON b.ContentID = c.ContentID 
         GROUP BY b.DateCreated 
@@ -400,7 +400,6 @@ class ExportKobo(CommandLineTool):
     QUERY_BOOKS = """
         SELECT DISTINCT
             b.VolumeID,
-            c.BookTitle,
             c.Title,
             c.Attribution as Author,
             (SELECT COUNT(*) FROM Bookmark b2 WHERE b2.VolumeID = b.VolumeID) AS Items
