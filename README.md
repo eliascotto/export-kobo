@@ -3,7 +3,7 @@ A Python tool to export annotations and highlights from a Kobo SQLite file. Now 
 
 Python 3 required.
 
-**Tested with the latest Kobo Clara**
+**Tested with Kobo Clara, Kobo Aura HD, Kobo Clara Colour**
 
 ## Usage
 
