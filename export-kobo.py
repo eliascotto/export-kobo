@@ -433,6 +433,7 @@ class ExportKobo(CommandLineTool):
         dict_books, enum_books = self.read_books()
 
         if self.vargs["ui"]:
+            self.read_items(dict_books, enum_books)
             self.run_server()
         else:
             if self.vargs["list"]:
