@@ -253,7 +253,7 @@ class Book(object):
         return self.__repr__()
 
     def to_markdown(self):
-        return "# {}\n## by {}\n---\n\n".format(self.title, self.author)
+        return "---\ntitle: {}\nauthor: {}\n---\n\n".format(self.title, self.author)
 
 
 class ExportKobo(CommandLineTool):
